@@ -1,0 +1,25 @@
+# ── .NET ─────────────────────────────────────────────────────────────────────
+bin/
+obj/
+*.user
+*.suo
+.vs/
+logs/
+
+# ── Angular ───────────────────────────────────────────────────────────────────
+node_modules/
+dist/
+.angular/
+coverage/
+
+# ── Docker / Secrets ─────────────────────────────────────────────────────────
+# never commit real secrets
+.env
+appsettings.Production.json
+
+# ── OS / Editor ───────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/settings.json
+*.swp
