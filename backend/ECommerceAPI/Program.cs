@@ -31,10 +31,36 @@ try
     builder.Services.AddControllers();
 
     builder.Services.AddScoped<IDbContext, DbContext>();
+    builder.Services.AddScoped<IAuthService, AuthService>();
 
     builder.Services.AddHealthChecks()
         .AddCheck("self", () => HealthCheckResult.Healthy("API is running."))
         .AddCheck<SqlHealthCheck>("database");
+
+    builder.Services.AddRateLimiter(opts =>
+    {
+        opts.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+        opts.AddPolicy("login", ctx =>
+            RateLimitPartition.GetFixedWindowLimiter(
+                partitionKey: ctx.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+                factory: _ => new FixedWindowRateLimiterOptions
+                {
+                    PermitLimit = 5,
+                    Window = TimeSpan.FromMinutes(1),
+                    QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+                    QueueLimit = 0
+                }));
+        opts.AddPolicy("api", ctx =>
+            RateLimitPartition.GetFixedWindowLimiter(
+                partitionKey: ctx.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+                factory: _ => new FixedWindowRateLimiterOptions
+                {
+                    PermitLimit = 120,
+                    Window = TimeSpan.FromMinutes(1),
+                    QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+                    QueueLimit = 0
+                }));
+    });
 
     builder.Services.AddEndpointsApiExplorer();
     builder.Services.AddSwaggerGen(opts =>
@@ -45,7 +71,42 @@ try
             Version = "v1",
             Description = "E-Commerce REST API — ASP.NET Core · raw ADO.NET · JWT Auth · Roles"
         });
+        opts.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+        {
+            Type = SecuritySchemeType.Http,
+            Scheme = "bearer",
+            BearerFormat = "JWT",
+            In = ParameterLocation.Header,
+            Description = "Paste your JWT token here."
+        });
+        opts.AddSecurityRequirement(new OpenApiSecurityRequirement
+        {{
+            new OpenApiSecurityScheme
+            {
+                Reference = new OpenApiReference { Type = ReferenceType.SecurityScheme, Id = "Bearer" }
+            },
+            Array.Empty<string>()
+        }});
     });
+
+    var jwtSecret = builder.Configuration["Jwt:Secret"]
+        ?? throw new InvalidOperationException("Jwt:Secret is not configured.");
+
+    builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+        .AddJwtBearer(opts =>
+        {
+            opts.TokenValidationParameters = new TokenValidationParameters
+            {
+                ValidateIssuerSigningKey = true,
+                IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecret)),
+                ValidateIssuer = true,
+                ValidIssuer = builder.Configuration["Jwt:Issuer"],
+                ValidateAudience = true,
+                ValidAudience = builder.Configuration["Jwt:Audience"],
+                ValidateLifetime = true,
+                ClockSkew = TimeSpan.Zero
+            };
+        });
 
     builder.Services.AddCors(opts =>
         opts.AddPolicy("AllowAngular", policy =>
@@ -56,6 +117,8 @@ try
     // ─────────────────────────────────────────────────────────────────────────
     var app = builder.Build();
     // ─────────────────────────────────────────────────────────────────────────
+
+    await SeedAdminAsync(app);
 
     // ── Serilog PRIMUL — prinde toate request-urile înainte de orice middleware
     app.UseSerilogRequestLogging(opts =>
@@ -84,6 +147,7 @@ try
     });
 
     app.UseCors("AllowAngular");
+    app.UseRateLimiter();
 
     app.UseExceptionHandler(errApp =>
         errApp.Run(async ctx =>
@@ -92,6 +156,9 @@ try
             ctx.Response.ContentType = "application/json";
             await ctx.Response.WriteAsJsonAsync(new { message = "An internal server error occurred." });
         }));
+
+    app.UseAuthentication();
+    app.UseAuthorization();
 
     app.MapHealthChecks("/health", new HealthCheckOptions
     {
@@ -130,6 +197,36 @@ catch (Exception ex)
 finally
 {
     Log.CloseAndFlush();
+}
+
+static async Task SeedAdminAsync(WebApplication app)
+{
+    using var scope = app.Services.CreateScope();
+    var db = scope.ServiceProvider.GetRequiredService<IDbContext>();
+
+    await using var conn = await db.OpenAsync();
+
+    const string check = "SELECT COUNT(1) FROM Users WHERE Email = @Email";
+    await using (var cmd = new SqlCommand(check, conn))
+    {
+        cmd.Parameters.AddWithValue("@Email", "admin@luxecart.com");
+        if (Convert.ToInt32(await cmd.ExecuteScalarAsync()) > 0) return;
+    }
+
+    var hash = BCrypt.Net.BCrypt.HashPassword("Admin@123", workFactor: 12);
+
+    const string insert = @"
+        INSERT INTO Users (FirstName, LastName, Email, PasswordHash, Role)
+        VALUES ('Admin', 'LuxeCart', 'admin@luxecart.com', @Hash, 'Admin')";
+
+    await using (var cmd = new SqlCommand(insert, conn))
+    {
+        cmd.Parameters.AddWithValue("@Hash", hash);
+        await cmd.ExecuteNonQueryAsync();
+    }
+
+    app.Logger.LogInformation(
+        "Admin user seeded → admin@luxecart.com / Admin@123 (change this password!)");
 }
 
 public partial class Program { }
