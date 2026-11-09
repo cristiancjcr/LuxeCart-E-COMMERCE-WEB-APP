@@ -32,6 +32,7 @@ try
 
     builder.Services.AddScoped<IDbContext, DbContext>();
     builder.Services.AddScoped<IAuthService, AuthService>();
+    builder.Services.AddScoped<IProductService, ProductService>();
 
     builder.Services.AddHealthChecks()
         .AddCheck("self", () => HealthCheckResult.Healthy("API is running."))
