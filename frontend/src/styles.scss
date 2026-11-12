@@ -1,0 +1,83 @@
+/* ============================================================
+   GLOBAL STYLES & DESIGN TOKENS
+   Aesthetic direction: Refined Minimalism — warm off-white +
+   charcoal + amber accent. Playfair Display + DM Sans.
+   ============================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;700&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap');
+
+/* ── CSS Variables (Design Tokens) ────────────────────────────────────────── */
+:root {
+  /* Colors */
+  --bg:          #FAFAF8;
+  --bg-dark:     #1A1A1A;
+  --bg-muted:    #F0EEE9;
+  --text:        #2C2C2C;
+  --text-light:  #F5F5F0;
+  --text-muted:  #888580;
+  --accent:      #C5973A;
+  --accent-light: rgba(197, 151, 58, .12);
+  --border:      #E8E4DF;
+
+  --font-display: 'Playfair Display', Georgia, serif;
+  --font-body:    'DM Sans', system-ui, sans-serif;
+}
+
+/* ── Reset ─────────────────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: var(--font-body);
+  background: var(--bg);
+  color: var(--text);
+  font-size: 16px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── Page transition ───────────────────────────────────────────────────────── */
+/*
+  Angular's router injects each routed component as a direct child of <main>.
+  Targeting those elements with a CSS animation is the safest approach —
+  no Angular Animations module involved, zero risk of blank-page bugs.
+  :not(router-outlet) excludes the <router-outlet> placeholder element itself.
+*/
+.main-content > *:not(router-outlet) {
+  animation: pageEnter 320ms cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+@keyframes pageEnter {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Disable animation for users who prefer reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .main-content > *:not(router-outlet) {
+    animation: none;
+  }
+}
+
+/* ── Main content area ────────────────────────────────────────────────────── */
+.main-content { min-height: calc(100vh - 64px); }
+
+/* ── Utility ────────────────────────────────────────────────────────────────── */
+img { display: block; }
+
+button, input, select, textarea {
+  font-family: inherit;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
