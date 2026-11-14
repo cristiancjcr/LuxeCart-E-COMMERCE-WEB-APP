@@ -1,4 +1,5 @@
 export const environment = {
   production: true,
-  apiUrl: 'https://YOUR_PRODUCTION_API_URL/api'  // replace before deploying
+  // Relative URL: in the Docker stack nginx proxies /api to the API service
+  apiUrl: '/api'
 };
