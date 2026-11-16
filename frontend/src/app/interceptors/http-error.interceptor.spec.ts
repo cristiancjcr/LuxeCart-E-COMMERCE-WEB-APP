@@ -1,7 +1,7 @@
 import { TestBed }                                    from '@angular/core/testing';
-import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
+import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideHttpClient, withInterceptors }         from '@angular/common/http';
-import { RouterTestingModule }                          from '@angular/router/testing';
+import { provideRouter }                                  from '@angular/router';
 import { HttpClient, HttpErrorResponse }               from '@angular/common/http';
 import { ToastService }                                from '../services/toast.service';
 import { AuthService }                                 from '../services/auth.service';
@@ -19,9 +19,10 @@ describe('httpErrorInterceptor', () => {
     authSvc.getToken.and.returnValue(null);
 
     TestBed.configureTestingModule({
-      imports: [RouterTestingModule],
       providers: [
         provideHttpClient(withInterceptors([httpErrorInterceptor])),
+        provideHttpClientTesting(),
+        provideRouter([]),
         { provide: ToastService, useValue: toastSvc },
         { provide: AuthService,  useValue: authSvc  }
       ]
