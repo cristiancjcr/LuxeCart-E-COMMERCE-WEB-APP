@@ -23,6 +23,11 @@ WORKDIR /app
 # Create a directory for Serilog file logs
 RUN mkdir -p /app/logs
 
+# curl is used by the container health check in docker-compose.yml
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends curl \
+    && rm -rf /var/lib/apt/lists/*
+
 COPY --from=build /app/publish .
 
 EXPOSE 5000
