@@ -2,6 +2,7 @@ import { TestBed }                                 from '@angular/core/testing';
 import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
 import { CartService }                              from './cart.service';
 import { Cart }                                     from '../models/models';
+import { environment }                          from '../../environments/environment';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // CartService Unit Tests (Jasmine / Karma)
@@ -60,7 +61,7 @@ describe('CartService', () => {
       expect(cart.total).toBe(1400);
     });
 
-    const req = httpMock.expectOne('http://localhost:5000/api/cart');
+    const req = httpMock.expectOne(`${environment.apiUrl}/cart`);
     expect(req.request.method).toBe('GET');
     req.flush(MOCK_CART_FILLED);
 
@@ -75,7 +76,7 @@ describe('CartService', () => {
   it('addToCart should POST to API with productId and quantity', () => {
     service.addToCart(10, 2).subscribe();
 
-    const req = httpMock.expectOne('http://localhost:5000/api/cart');
+    const req = httpMock.expectOne(`${environment.apiUrl}/cart`);
     expect(req.request.method).toBe('POST');
     expect(req.request.body).toEqual({ productId: 10, quantity: 2 });
     req.flush(MOCK_CART_FILLED);
@@ -84,7 +85,7 @@ describe('CartService', () => {
   it('addToCart should update the cart BehaviorSubject', () => {
     service.addToCart(10, 1).subscribe();
 
-    const req = httpMock.expectOne('http://localhost:5000/api/cart');
+    const req = httpMock.expectOne(`${environment.apiUrl}/cart`);
     req.flush(MOCK_CART_FILLED);
 
     service.cart$.subscribe(cart => {
@@ -97,7 +98,7 @@ describe('CartService', () => {
   it('itemCount should reflect total quantity across all items', () => {
     // Simulate a cart update via loadCart
     service.loadCart().subscribe();
-    httpMock.expectOne('http://localhost:5000/api/cart').flush(MOCK_CART_FILLED);
+    httpMock.expectOne(`${environment.apiUrl}/cart`).flush(MOCK_CART_FILLED);
 
     // qty: 2 + 1 = 3
     expect(service.itemCount).toBe(3);
@@ -108,7 +109,7 @@ describe('CartService', () => {
   it('updateQuantity should PUT to the correct URL', () => {
     service.updateQuantity(10, 5).subscribe();
 
-    const req = httpMock.expectOne('http://localhost:5000/api/cart/10');
+    const req = httpMock.expectOne(`${environment.apiUrl}/cart/10`);
     expect(req.request.method).toBe('PUT');
     expect(req.request.body).toEqual({ quantity: 5 });
     req.flush(MOCK_CART_FILLED);
@@ -119,14 +120,14 @@ describe('CartService', () => {
   it('removeItem should DELETE the correct product endpoint', () => {
     service.removeItem(20).subscribe();
 
-    const req = httpMock.expectOne('http://localhost:5000/api/cart/20');
+    const req = httpMock.expectOne(`${environment.apiUrl}/cart/20`);
     expect(req.request.method).toBe('DELETE');
     req.flush(MOCK_CART_EMPTY);
   });
 
   it('removeItem should update state to empty cart', () => {
     service.removeItem(20).subscribe();
-    httpMock.expectOne('http://localhost:5000/api/cart/20').flush(MOCK_CART_EMPTY);
+    httpMock.expectOne(`${environment.apiUrl}/cart/20`).flush(MOCK_CART_EMPTY);
 
     service.cart$.subscribe(cart => {
       expect(cart.items.length).toBe(0);
@@ -139,7 +140,7 @@ describe('CartService', () => {
   it('clearLocal should reset cart state without an HTTP call', () => {
     // First, fill the cart in memory
     service.loadCart().subscribe();
-    httpMock.expectOne('http://localhost:5000/api/cart').flush(MOCK_CART_FILLED);
+    httpMock.expectOne(`${environment.apiUrl}/cart`).flush(MOCK_CART_FILLED);
 
     // Clear locally (used after checkout)
     service.clearLocal();
@@ -150,6 +151,6 @@ describe('CartService', () => {
     });
 
     // No extra HTTP call should have been made
-    httpMock.expectNone('http://localhost:5000/api/cart');
+    httpMock.expectNone(`${environment.apiUrl}/cart`);
   });
 });

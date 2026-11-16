@@ -1,7 +1,7 @@
 import { TestBed }                                  from '@angular/core/testing';
-import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
+import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideHttpClient, withInterceptors }      from '@angular/common/http';
-import { RouterTestingModule }                        from '@angular/router/testing';
+import { provideRouter }                                from '@angular/router';
 import { HttpClient }                                from '@angular/common/http';
 import { AuthService }                               from '../services/auth.service';
 import { jwtInterceptor }                            from './jwt.interceptor';
@@ -9,27 +9,21 @@ import { jwtInterceptor }                            from './jwt.interceptor';
 describe('jwtInterceptor', () => {
   let http:     HttpClient;
   let httpMock: HttpTestingController;
-  let authSvc:  AuthService;
 
   beforeEach(() => {
     localStorage.clear();
 
     TestBed.configureTestingModule({
-      imports: [RouterTestingModule],
       providers: [
         provideHttpClient(withInterceptors([jwtInterceptor])),
+        provideHttpClientTesting(),
+        provideRouter([]),
         AuthService
       ]
     });
 
-    // Provide the testing controller separately for inspection
-    TestBed.overrideProvider(HttpClient, {
-      useFactory: () => TestBed.inject(HttpClient)
-    });
-
     http     = TestBed.inject(HttpClient);
     httpMock = TestBed.inject(HttpTestingController);
-    authSvc  = TestBed.inject(AuthService);
   });
 
   afterEach(() => { httpMock.verify(); localStorage.clear(); });
