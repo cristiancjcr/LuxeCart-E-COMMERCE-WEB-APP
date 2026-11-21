@@ -1,3 +1,4 @@
+using ECommerceAPI.Data;
 using ECommerceAPI.DTOs;
 using ECommerceAPI.Services;
 using Xunit;
@@ -22,6 +23,23 @@ public class OrderServiceTests
         mock.Setup(c => c.GetCartAsync(It.IsAny<int>()))
             .ReturnsAsync(new CartDto(items, items.Sum(i => i.LineTotal)));
         return mock;
+    }
+
+    [Fact]
+    public async Task PlaceOrderAsync_WithEmptyCart_ReturnsNull_AndNeverOpensConnection()
+    {
+        // Arrange — empty cart; the database mock is strict, so any call to it fails the test
+        var cart    = BuildCartMock(new List<CartItemDto>());
+        var db      = new Mock<IDbContext>(MockBehavior.Strict);
+        var service = new OrderService(db.Object, cart.Object);
+
+        // Act
+        var result = await service.PlaceOrderAsync(1, "Str. Test 1, Iasi");
+
+        // Assert
+        result.Should().BeNull(because: "an empty cart must not produce an order");
+        db.Verify(d => d.OpenAsync(), Times.Never);
+        cart.Verify(c => c.ClearCartAsync(It.IsAny<int>()), Times.Never);
     }
 
     [Fact]
