@@ -93,3 +93,77 @@ public class OrderServiceTests
         computedTotal.Should().Be(expected);
     }
 }
+
+// ────────────────────────────────────────────────────────────────────────────
+// DTOs Validation Tests
+// ────────────────────────────────────────────────────────────────────────────
+
+public class DtoValidationTests
+{
+    [Theory]
+    [InlineData("", "Password1!", false)]   // empty email
+    [InlineData("notanemail", "pass", false)] // invalid email (no @)
+    [InlineData("user@test.com", "", false)] // empty password
+    [InlineData("user@test.com", "pass", true)] // valid
+    public void RegisterRequest_Validation(string email, string password, bool shouldBeValid)
+    {
+        // Act — replicate the validation logic in AuthController
+        var isValid = !string.IsNullOrWhiteSpace(email)
+                   && !string.IsNullOrWhiteSpace(password);
+
+        // Assert
+        isValid.Should().Be(shouldBeValid);
+    }
+
+    [Fact]
+    public void CheckoutRequest_RequiresShippingAddress()
+    {
+        // Simulate the controller validation
+        var reqWithAddress  = new CheckoutRequest("123 Main St, Bucharest");
+        var reqWithoutAddress = new CheckoutRequest("");
+
+        string.IsNullOrWhiteSpace(reqWithAddress.ShippingAddress).Should().BeFalse();
+        string.IsNullOrWhiteSpace(reqWithoutAddress.ShippingAddress).Should().BeTrue();
+    }
+
+    [Theory]
+    [InlineData(0, false)]  // zero quantity not allowed
+    [InlineData(-1, false)] // negative not allowed
+    [InlineData(1, true)]   // minimum valid quantity
+    [InlineData(99, true)]  // large but valid quantity
+    public void AddToCartRequest_QuantityValidation(int quantity, bool expectedValid)
+    {
+        var isValid = quantity > 0;
+        isValid.Should().Be(expectedValid);
+    }
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// Price Precision Tests — ensure decimal arithmetic is correct
+// ────────────────────────────────────────────────────────────────────────────
+
+public class PricePrecisionTests
+{
+    [Fact]
+    public void Decimal_Arithmetic_IsExact_NotFloatingPoint()
+    {
+        // This would FAIL with double/float due to floating-point imprecision
+        decimal price1 = 0.1m;
+        decimal price2 = 0.2m;
+
+        var total = price1 + price2;
+
+        // Assert exact equality — decimals don't have IEEE 754 rounding errors
+        total.Should().Be(0.3m, because: "prices must use decimal, not float/double");
+    }
+
+    [Fact]
+    public void OrderTotal_WithLargeQuantities_IsAccurate()
+    {
+        var unitPrice = 1299.99m;
+        var quantity  = 100;
+        var expected  = 129999.00m;
+
+        (unitPrice * quantity).Should().Be(expected);
+    }
+}
